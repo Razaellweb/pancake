@@ -13,7 +13,7 @@ app.get('/api/user/:address', async (req, res) => {
   const lastBlockNumber = await web3.eth.getBlockNumber()
 
   let pools = [];
-  for (let blockNumber = 0; blockNumber < lastBlockNumber; blockNumber+10000) {
+  for (let blockNumber = 0; blockNumber < lastBlockNumber; blockNumber+=10000) {
     const events = await contract.getPastEvents('Deposit', {
       filter: { user: address },
       fromBlock: blockNumber,
