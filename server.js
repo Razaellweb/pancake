@@ -37,7 +37,7 @@ const resolvers = {
         const events = await contract.getPastEvents('Deposit', {
           filter: { user: address },
           fromBlock: blockNumber,
-          toBlock: blockNumber
+          toBlock: blockNumber + 10000
         });
 
         events.forEach(event => {
@@ -68,17 +68,37 @@ const resolvers = {
     },
     async getTransactions(_, { address }) {
       const contract = new web3.eth.Contract(contractABI, '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73');
+      const lastBlockNumber = await web3.eth.getBlockNumber();
+      let provideEvents = [];
+      let fromBlock = 0;
+      let toBlock = lastBlockNumber;
 
-      const provideEvents = await contract.getPastEvents('Deposit', {
-        filter: { user: address },
-        fromBlock: 0,
-        toBlock: 'latest'
-      });
-      const removeEvents = await contract.getPastEvents('Withdraw', {
-        filter: { user: address },
-        fromBlock: 0,
-        toBlock: 'latest'
-      });
+      for (let i = fromBlock; i <= toBlock; i += 10000) {
+        let event = await contract.getPastEvents('Deposit', {
+          filter: { user: address },
+          fromBlock: i,
+          toBlock: i + 10000
+        });
+        if (event.length > 0) {
+          provideEvents.push(...event);
+        }
+      }
+
+      let removeEvents = [];
+      let fromBlock2 = 0;
+      let toBlock2 = lastBlockNumber;
+
+      for (let i = fromBlock2; i <= toBlock2; i += 10000) {
+        let event = await contract.getPastEvents('Deposit', {
+          filter: { user: address },
+          fromBlock: i,
+          toBlock: i + 10000
+        });
+        if (event.length > 0) {
+          removeEvents.push(...event);
+        }
+      }
+
       const transactions = [...provideEvents, ...removeEvents].map(event => ({
         id: event.transactionHash,
         type: event.event

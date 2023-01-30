@@ -13,11 +13,11 @@ app.get('/api/user/:address', async (req, res) => {
   const lastBlockNumber = await web3.eth.getBlockNumber()
 
   let pools = [];
-  for (let blockNumber = 0; blockNumber < lastBlockNumber; blockNumber+=10000) {
+  for (let blockNumber = 0; blockNumber < lastBlockNumber; blockNumber += 10000) {
     const events = await contract.getPastEvents('Deposit', {
       filter: { user: address },
       fromBlock: blockNumber,
-      toBlock: blockNumber
+      toBlock: blockNumber + 10000
     });
 
     events.forEach(event => {
@@ -30,19 +30,40 @@ app.get('/api/user/:address', async (req, res) => {
   const totalLiquidity = await Promise.all(pools.map(pool => contract.methods.balanceOf(pool).call()));
 
   // get all the transaction instances where the user provided or withdrew from a pool
-  const provideEvents = await contract.getPastEvents('Deposit', {
-    filter: { user: address },
-    fromBlock: 0,
-    toBlock: 'latest'
-  });
-  const removeEvents = await contract.getPastEvents('Withdraw', {
-    filter: { user: address },
-    fromBlock: 0,
-    toBlock: 'latest'
-  });
-  const transactions = [...provideEvents, ...removeEvents];
+  let provideEvents = [];
+  let fromBlock = 0;
+  let toBlock = lastBlockNumber;
 
-  res.json({ pools, totalLiquidity, transactions });
+  for (let i = fromBlock; i <= toBlock; i+=10000) {
+    let event = await contract.getPastEvents('Deposit', {
+      filter: { user: address },
+      fromBlock: i,
+      toBlock: i + 10000
+    });
+    if (event.length > 0) {
+      provideEvents.push(...event);
+    }
+  }
+
+  let removeEvents = [];
+  let fromBlock2 = 0;
+  let toBlock2 = lastBlockNumber;
+
+  for (let i = fromBlock2; i <= toBlock2; i+=10000) {
+    let event = await contract.getPastEvents('Deposit', {
+      filter: { user: address },
+      fromBlock: i,
+      toBlock: i + 10000
+    });
+    if (event.length > 0) {
+      removeEvents.push(...event);
+    }
+  }
+
+  const transactions = [...provideEvents, ...removeEvents]; 
+
+  res.json({ pools, totalLiquidity, transactions});
+
 });
 
 app.listen(8000, () => console.log(`server listening on port 8000`));
