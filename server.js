@@ -104,7 +104,19 @@ const resolvers = {
         type: event.event
       }));
 
-      return { pools, totalLiquidity, transactions };
+      // fetch the latest token prices in USD
+      const tokenPrices = {};
+      const promises = pools.map(async pool => {
+        const response = await axios.get(`https://api.coinmarketcap.com/v2/ticker/${pool}/?convert=USD`);
+        const price = response.data.data.quotes.USD.price;
+        tokenPrices[pool] = price;
+      });
+      await Promise.all(promises);
+
+      // calculate the value of the user's tokens in each pool in dollars
+      const totalValue = totalLiquidity.map((liquidity, i) => liquidity * tokenPrices[pools[i]]);
+
+      return { pools, totalLiquidity, transactions, totalValue };
     }
   }
 };
