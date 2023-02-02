@@ -71,7 +71,17 @@ app.get('/api/user/:address', async (req, res) => {
   // calculate the value of the user's tokens in each pool in dollars
   const totalValue = totalLiquidity.map((liquidity, i) => liquidity * tokenPrices[pools[i]]);
 
-  res.json({ pools, totalLiquidity, transactions, totalValue });
+  // fetch the current ETH price in USD
+  const ethPriceResponse = await axios.get('https://api.coinmarketcap.com/v2/ticker/1027/?convert=USD');
+  const ethPrice = ethPriceResponse.data.data.quotes.USD.price;
+
+  // get the constant_product value
+  const constantProduct = await contract.methods.constantProduct().call();
+
+  // calculate the token_liquidity_pool
+  const tokenLiquidityPool = Math.sqrt(constantProduct * ethPrice);
+
+  res.json({ pools, totalLiquidity, transactions, totalValue, tokenLiquidityPool });
 });
 
 app.listen(8000, () => console.log(`server listening on port 8000`));
